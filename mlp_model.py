@@ -24,7 +24,6 @@ class ETongueMLP(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         
-        # Build layers
         layers = []
         prev_dim = input_dim
         
@@ -37,16 +36,13 @@ class ETongueMLP(nn.Module):
             ])
             prev_dim = hidden_dim
         
-        # Output layer (no activation - using BCEWithLogitsLoss)
         layers.append(nn.Linear(prev_dim, output_dim))
         
         self.network = nn.Sequential(*layers)
         
-        # Initialize weights
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize network weights"""
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
@@ -56,14 +52,12 @@ class ETongueMLP(nn.Module):
         return self.network(x)
     
     def predict_proba(self, x):
-        """Get probabilities using sigmoid"""
         with torch.no_grad():
             logits = self.forward(x)
             probs = torch.sigmoid(logits)
         return probs
     
     def predict(self, x, threshold=0.5):
-        """Get binary predictions"""
         probs = self.predict_proba(x)
         return (probs > threshold).float()
 
@@ -74,7 +68,6 @@ class ETongueTrainer:
         self.history = {'train_loss': [], 'val_loss': [], 'val_f1': []}
     
     def train_epoch(self, train_loader, optimizer, criterion):
-        """Train for one epoch"""
         self.model.train()
         total_loss = 0
         
@@ -92,7 +85,6 @@ class ETongueTrainer:
         return total_loss / len(train_loader)
     
     def validate(self, val_loader, criterion):
-        """Validate model"""
         self.model.eval()
         total_loss = 0
         all_preds = []
@@ -110,11 +102,9 @@ class ETongueTrainer:
                 all_preds.append(preds.cpu().numpy())
                 all_targets.append(batch_y.cpu().numpy())
         
-        # Calculate F1 score
         all_preds = np.vstack(all_preds)
         all_targets = np.vstack(all_targets)
         
-        # Macro F1
         f1_scores = []
         for i in range(all_targets.shape[1]):
             tp = np.sum((all_preds[:, i] == 1) & (all_targets[:, i] == 1))
@@ -132,7 +122,6 @@ class ETongueTrainer:
     
     def fit(self, train_loader, val_loader, epochs=100, lr=0.001, 
             weight_decay=1e-4, patience=10, min_delta=1e-4):
-        """Train the model with early stopping"""
         
         criterion = nn.BCEWithLogitsLoss()
         optimizer = torch.optim.Adam(self.model.parameters(), 
@@ -149,16 +138,12 @@ class ETongueTrainer:
         print(f"Model parameters: {sum(p.numel() for p in self.model.parameters()):,}")
         
         for epoch in range(epochs):
-            # Training
             train_loss = self.train_epoch(train_loader, optimizer, criterion)
             
-            # Validation
             val_loss, val_f1 = self.validate(val_loader, criterion)
             
-            # Learning rate scheduling
             scheduler.step(val_loss)
             
-            # Early stopping
             if val_loss < best_val_loss - min_delta:
                 best_val_loss = val_loss
                 patience_counter = 0
@@ -166,7 +151,6 @@ class ETongueTrainer:
             else:
                 patience_counter += 1
             
-            # Store history
             self.history['train_loss'].append(train_loss)
             self.history['val_loss'].append(val_loss)
             self.history['val_f1'].append(val_f1)
@@ -179,7 +163,6 @@ class ETongueTrainer:
                 print(f"Early stopping at epoch {epoch}")
                 break
         
-        # Load best model
         if best_model_state is not None:
             self.model.load_state_dict(best_model_state)
         
@@ -187,7 +170,6 @@ class ETongueTrainer:
         return self.history
 
 def create_data_loaders(data_dict: Dict, batch_size=32, num_workers=0) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """Create PyTorch data loaders"""
     
     train_dataset = ETongueDataset(data_dict['X_train'], data_dict['y_train'])
     val_dataset = ETongueDataset(data_dict['X_val'], data_dict['y_val'])
@@ -203,30 +185,23 @@ def create_data_loaders(data_dict: Dict, batch_size=32, num_workers=0) -> Tuple[
     return train_loader, val_loader, test_loader
 
 def main():
-    """Test MLP model"""
     from preprocess import prepare_data
     from generate_data import ETongueDataGenerator
     
-    # Generate test data
     generator = ETongueDataGenerator()
     df = generator.generate_dataset(n_samples_per_class=300, n_mixture_samples=150)
     df.to_csv('test_mlp_data.csv', index=False)
     
-    # Prepare data
     data_dict = prepare_data('test_mlp_data.csv')
     
-    # Create model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = ETongueMLP(input_dim=18, hidden_dims=[64, 128, 64], output_dim=7)
     
-    # Create data loaders
     train_loader, val_loader, test_loader = create_data_loaders(data_dict, batch_size=32)
     
-    # Train model
     trainer = ETongueTrainer(model, device)
     history = trainer.fit(train_loader, val_loader, epochs=50, lr=0.001)
     
-    # Test prediction
     model.eval()
     with torch.no_grad():
         sample_x = torch.FloatTensor(data_dict['X_test'][:5]).to(device)
