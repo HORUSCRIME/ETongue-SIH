@@ -155,7 +155,7 @@ def test_api_functionality(client: ETongueClient):
         
         probs = result['probabilities']
         top_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)[:3]
-        print("   ✅ Top probabilities:")
+        print("   Top probabilities:")
         for taste, prob in top_probs:
             print(f"      {taste}: {prob:.3f}")
     
@@ -278,7 +278,7 @@ def main():
                 
                 sensors = [float(x.strip()) for x in user_input.split(',')]
                 if len(sensors) != 18:
-                    print("❌ Please provide exactly 18 sensor values")
+                    print(" Please provide exactly 18 sensor values")
                     continue
                 
                 sample_id = f"interactive_{int(time.time())}"
