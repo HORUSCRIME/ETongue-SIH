@@ -34,8 +34,22 @@ class ETongueDataGenerator:
         # Add cross-channel correlations
         if taste == 'sweet':
             vector[9] = vector[2] * 0.6 + np.random.normal(0, 0.1)
+            vector[5] = vector[4] * 0.5 + np.random.normal(0, 0.08)
+        elif taste == 'salty':
+            vector[7] = vector[1] * 0.8 + np.random.normal(0, 0.1)
+            vector[17] = vector[6] * 0.4 + np.random.normal(0, 0.12)
         elif taste == 'sour':
             vector[13] = vector[11] * 0.7 + np.random.normal(0, 0.1)
+            vector[10] = vector[12] * 0.6 + np.random.normal(0, 0.09)
+        elif taste == 'bitter':
+            vector[16] = vector[14] * 0.9 + np.random.normal(0, 0.15)
+            vector[17] = vector[14] * 0.3 + np.random.normal(0, 0.2)
+        elif taste == 'umami':
+            vector[4] = vector[0] * 0.7 + np.random.normal(0, 0.08)
+            vector[7] = vector[3] * 0.5 + np.random.normal(0, 0.1)
+        elif taste == 'astringent':
+            vector[14] = vector[15] * 0.6 + np.random.normal(0, 0.12)
+            vector[17] = vector[16] * 0.8 + np.random.normal(0, 0.15)
             
         return np.clip(vector, 0, 1)
     
@@ -198,6 +212,8 @@ def main():
         noise_level=0.05,
         drift_level=0.02
     )
+    
+
     
     print(f"Generated {len(df)} samples with {df.shape[1]} features")
     print(f"Class distribution:\n{df['label'].value_counts()}")
