@@ -19,6 +19,7 @@ class ETongueDataGenerator:
             'bitter': {'primary_channels': [14], 'intensity': 0.7, 'noise': 0.25},
             'umami': {'primary_channels': [0, 3], 'intensity': 0.75, 'noise': 0.1},
             'astringent': {'primary_channels': [15, 16], 'intensity': 0.6, 'noise': 0.2},
+            'pungent': {'primary_channels': [2, 3, 12], 'intensity': 0.85, 'noise': 0.15},
             'bland': {'primary_channels': [], 'intensity': 0.1, 'noise': 0.05}
         }
         
@@ -48,6 +49,9 @@ class ETongueDataGenerator:
         elif taste == 'astringent':
             vector[14] = vector[15] * 0.6 + np.random.normal(0, 0.12)
             vector[17] = vector[16] * 0.8 + np.random.normal(0, 0.15)
+        elif taste == 'pungent':
+            vector[13] = vector[2] * 0.7 + np.random.normal(0, 0.1)
+            vector[4] = vector[3] * 0.6 + np.random.normal(0, 0.12)
             
         return np.clip(vector, 0, 1)
     

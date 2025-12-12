@@ -79,12 +79,24 @@ class ETonguePredictor:
             logger.error(f"Failed to load models: {e}")
             return False
     
+    def normalize_sensor_data(self, sensors: List[float]) -> List[float]:
+        """Auto-normalize sensor data to 0-1 range"""
+        sensors_array = np.array(sensors)
+        sensors_array = np.maximum(sensors_array, 0)  # Remove negatives
+        
+        min_val = np.min(sensors_array)
+        max_val = np.max(sensors_array)
+        
+        if max_val > min_val:
+            normalized = (sensors_array - min_val) / (max_val - min_val)
+        else:
+            normalized = np.zeros_like(sensors_array)
+            
+        return normalized.tolist()
+    
     def validate_sensor_data(self, sensors: List[float]) -> bool:
         if len(sensors) != 18:
             return False
-        
-        if any(s < 0 or s > 1 for s in sensors):
-            logger.warning("Sensor values outside expected range [0,1]")
         
         if any(not np.isfinite(s) for s in sensors):
             return False
@@ -125,11 +137,15 @@ class ETonguePredictor:
         if not self.validate_sensor_data(sensor_reading.sensors):
             raise ValueError("Invalid sensor data")
         
-        drift_info = self.detect_drift(sensor_reading.sensors)
+        # Auto-normalize sensor data
+        normalized_sensors = self.normalize_sensor_data(sensor_reading.sensors)
+        logger.info(f"Normalized sensors from range [{min(sensor_reading.sensors):.3f}, {max(sensor_reading.sensors):.3f}] to [0, 1]")
+        
+        drift_info = self.detect_drift(normalized_sensors)
         if drift_info['drift_detected']:
             logger.warning(f"Potential sensor drift detected for {sensor_reading.sample_id}")
         
-        df = pd.DataFrame([sensor_reading.sensors], 
+        df = pd.DataFrame([normalized_sensors], 
                          columns=[f'ch_{i+1}' for i in range(18)])
         
         X = self.preprocessor.transform(df, apply_drift_correction=False)

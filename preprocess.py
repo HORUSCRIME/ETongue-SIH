@@ -12,7 +12,7 @@ class ETonguePreprocessor:
         self.outlier_threshold = outlier_threshold
         self.scaler = None
         self.feature_columns = None
-        self.taste_classes = ['sweet', 'salty', 'sour', 'bitter', 'umami', 'astringent', 'bland']
+        self.taste_classes = None  # Will be set dynamically from data
         
     def _init_scaler(self):
         if self.scaler_type == 'standard':
@@ -85,6 +85,16 @@ class ETonguePreprocessor:
     def fit_transform(self, df: pd.DataFrame, apply_drift_correction=True) -> Tuple[np.ndarray, np.ndarray]:
 
         df = self.handle_missing_values(df.copy())
+        
+        # Extract unique taste classes from data
+        all_tastes = set()
+        for label_str in df['label'].dropna():
+            if label_str != 'unknown':
+                tastes = label_str.split(';')
+                for taste in tastes:
+                    all_tastes.add(taste.strip())
+        self.taste_classes = sorted(list(all_tastes))
+        print(f"Found taste classes: {self.taste_classes}")
         
         self.feature_columns = [col for col in df.columns if col.startswith('ch_')]
         X = df[self.feature_columns].values.astype(np.float32)
